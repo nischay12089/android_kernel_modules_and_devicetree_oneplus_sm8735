@@ -313,6 +313,8 @@ static void create_kswapd_debug_proc(void)
 
 	if (!kswapd_debug_entry)
 		pr_err("kswapd_debug_proc create failed, ENOMEM\n");
+	else	/* onyx: OnePlus's vendor rc gives it to group system (athena reads it); onyx has none */
+		proc_set_user(kswapd_debug_entry, GLOBAL_ROOT_UID, KGIDT_INIT(1000));
 }
 
 static void remove_kswapd_debug_proc(void)

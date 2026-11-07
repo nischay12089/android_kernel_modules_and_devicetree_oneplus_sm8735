@@ -217,14 +217,25 @@ static ssize_t stats_show(struct kobject *kobj, struct kobj_attribute *attr, cha
 	return size;
 }
 
+/*
+ * onyx: Osense (newer ColorOS) reads order4_frag_score; its producer is not in this OnePlus drop.
+ * Report 0 ("not fragmented") so Osense takes no fragmentation action, as when the node was missing.
+ */
+static ssize_t order4_frag_score_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return sysfs_emit(buf, "0\n");
+}
+
 static struct kobj_attribute stats_attr = __ATTR_RO(stats);
 static struct kobj_attribute kill_bad_proc_enabled_attr = __ATTR_WO(kill_bad_proc_enabled);
 static struct kobj_attribute kill_bad_proc_args_attr = __ATTR_WO(kill_bad_proc_args);
+static struct kobj_attribute order4_frag_score_attr = __ATTR_RO(order4_frag_score);
 
 static struct attribute *attrs[] = {
 	&stats_attr.attr,
 	&kill_bad_proc_enabled_attr.attr,
 	&kill_bad_proc_args_attr.attr,
+	&order4_frag_score_attr.attr,
 	NULL,
 };
 
