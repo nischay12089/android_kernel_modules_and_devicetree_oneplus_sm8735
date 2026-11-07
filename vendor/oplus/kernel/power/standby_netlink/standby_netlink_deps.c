@@ -1,3 +1,4 @@
+/* onyx: stubs log at debug level: Xiaomi drivers lack the OnePlus clk/regulator/smp2p hooks */
 #include <linux/kernel.h>
 #include <linux/string.h>
 #include <linux/list.h>
@@ -40,7 +41,7 @@ extern struct list_head *get_suspend_clk_list(void);
 #else
 static struct list_head *get_suspend_clk_list(void)
 {
-    pr_err("[standby_netlink]: unsupport get_suspend_clk_list.");
+    pr_debug("[standby_netlink]: unsupportget_suspend_clk_list.");
     return NULL;
 }
 #endif
@@ -50,7 +51,7 @@ extern struct list_head *get_suspend_regulator_list(void);
 #else
 static struct list_head *get_suspend_regulator_list(void)
 {
-    pr_err("[standby_netlink]: unsupport get_suspend_regulator_list.");
+    pr_debug("[standby_netlink]: unsupportget_suspend_regulator_list.");
     return NULL;
 }
 #endif
@@ -61,13 +62,13 @@ extern void reset_oplus_smp2p_state(int switch_state);
 #else
 static struct list_head *get_oplus_smp2p_state_list(void)
 {
-    pr_err("[standby_netlink]: unsupport get_oplus_smp2p_state_list.");
+    pr_debug("[standby_netlink]: unsupportget_oplus_smp2p_state_list.");
     return NULL;
 }
 
 void reset_oplus_smp2p_state(int switch_state)
 {
-    pr_err("[standby_netlink]: unsupport reset_oplus_smp2p_state. switch %d.\n", switch_state);
+    pr_debug("[standby_netlink]: unsupportreset_oplus_smp2p_state. switch %d.\n", switch_state);
 }
 #endif
 

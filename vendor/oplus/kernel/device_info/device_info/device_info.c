@@ -1667,9 +1667,22 @@ device_info_init(void)
 		return -ENODEV;
 	}
 
-	return platform_driver_register(&devinfo_platform_driver);
+	if (platform_driver_register(&devinfo_platform_driver)) {
+		proc_remove(g_parent);
+		return -ENODEV;
+	}
+	return 0;
+}
+
+/* onyx: upstream has no exit (built-in only). By name, since devinfo_remove() may already have removed the dir. */
+static void __exit device_info_exit(void)
+{
+	platform_driver_unregister(&devinfo_platform_driver);
+	/* shortcut: the kzalloc'd manufacture_info behind each entry leaks on unload; add an unregister API if unloads become routine */
+	remove_proc_subtree(DEVINFO_NAME, NULL);
 }
 
 device_initcall(device_info_init);
+module_exit(device_info_exit);
 
 MODULE_LICENSE("GPL v2");

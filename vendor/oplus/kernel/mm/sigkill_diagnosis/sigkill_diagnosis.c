@@ -19,6 +19,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <trace/hooks/signal.h>
+#include "../../onyx_proc_shared.h"
 
 #define SIGKILL_RECORD_SIZE 20
 #define SYSTEM_UID 1000
@@ -150,7 +151,7 @@ static int __init sigkill_diagnosis_init(void)
 	}
 	spin_lock_init(&g_sigkill_records->lock);
 
-	root_dir_entry = proc_mkdir("oplus_mem", NULL);
+	root_dir_entry = onyx_proc_mkdir_shared("oplus_mem");
 	g_sigkill_reason_entry = proc_create((root_dir_entry ?
 		"sigkill_reason" : "oplus_mem/sigkill_reason"),
 		0444, root_dir_entry, &proc_sigkill_reason_ops);

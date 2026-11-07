@@ -344,6 +344,9 @@ static int oplus_stats_calc_netlink_rcv_msg(struct sk_buff *skb, struct genl_inf
 
 	nlhdr = nlmsg_hdr(skb);
 	genlhdr = nlmsg_data(nlhdr);
+	/* onyx: the handler reads this first attribute; reject requests that carry none */
+	if (genlmsg_len(genlhdr) < NLA_HDRLEN)
+		return -EINVAL;
 	nla = genlmsg_data(genlhdr);
 
 	LOGK(0, "set s_user_pid=%u type=%u len=%u.", nlhdr->nlmsg_pid, nla->nla_type, nla->nla_len);
@@ -383,6 +386,8 @@ static struct genl_family oplus_stats_calc_genl_family = {
 	.maxattr = OPLUS_STATS_CALC_CMD_UP + 1,
 	.ops = oplus_stats_calc_genl_ops,
 	.n_ops = ARRAY_SIZE(oplus_stats_calc_genl_ops),
+	/* onyx: 6.1+ genetlink rejects every attribute of policy-less ops at or above resv_start_op */
+	.resv_start_op = __OPLUS_STATS_CALC_CMD_MAX,
 };
 
 static int oplus_stats_calc_netlink_init(void)

@@ -5,5 +5,5 @@ LINUXINCLUDE += -I$(srctree)/
 
 obj-$(CONFIG_OPLUS_FEATURE_MGLRU_OPT) += oplus_bsp_mglru_opt.o
 
-oplus_bsp_mglru_opt-y := oplus_bsp_mglru_opt.o
+oplus_bsp_mglru_opt-y := mglru_opt.o
 

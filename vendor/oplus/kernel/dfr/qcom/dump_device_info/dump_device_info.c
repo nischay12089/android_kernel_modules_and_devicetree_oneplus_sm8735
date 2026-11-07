@@ -8,7 +8,7 @@
 #include <linux/types.h>
 #include <linux/version.h>
 #include <soc/oplus/system/oplus_project.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0) && IS_ENABLED(CONFIG_QCOM_DEBUG_SYMBOL)
 #include <../drivers/soc/qcom/debug_symbol.h>
 #else
 #include <linux/android_debug_symbols.h>
@@ -27,6 +27,7 @@
 #include <linux/of_fdt.h>
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
+#include <linux/utsname.h>
 #include "device_info.h"
 
 #define MEM_TYPE_WCOMBINE 0
@@ -41,6 +42,7 @@ static char rf_version[8];
 
 const char *platform_name;
 const char *kernel_version;
+static char onyx_banner[__NEW_UTS_LEN * 2 + 16];
 
 extern char serial_no[];
 
@@ -193,8 +195,13 @@ static void board_hw_info_init(void)
 	scnprintf(rf_version, sizeof(rf_version), "%d", get_Modem_Version());
 
 	platform_name = get_machine_name();
-        #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+        #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0) && IS_ENABLED(CONFIG_QCOM_DEBUG_SYMBOL)
         kernel_version = DEBUG_SYMBOL_LOOKUP(linux_banner);
+        #elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+        /* onyx: linux_banner is not exported and the GKI debug-symbol table has no banner entry */
+        snprintf(onyx_banner, sizeof(onyx_banner), "Linux version %s %s",
+                 init_utsname()->release, init_utsname()->version);
+        kernel_version = onyx_banner;
         #else
         kernel_version = android_debug_symbol(ADS_LINUX_BANNER);
         #endif

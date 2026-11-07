@@ -54,6 +54,9 @@ bool error_flag = false;
 
 int bright_screen_timer_restart(void)
 {
+	if (!THEIA_HAS_PANEL_EVENTS)
+		return -ENODEV;
+
 	BRIGHT_DEBUG_PRINTK("%s enter: blank = %d, status = %d\n", __func__, g_bright_data.blank, g_bright_data.status);
 
 	if (g_bright_data.status != BRIGHT_STATUS_CHECK_ENABLE && g_bright_data.status != BRIGHT_STATUS_CHECK_DEBUG) {

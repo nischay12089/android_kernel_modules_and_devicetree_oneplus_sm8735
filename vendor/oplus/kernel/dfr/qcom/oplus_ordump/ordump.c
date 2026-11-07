@@ -13,6 +13,7 @@
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
 #include <linux/soc/qcom/smem.h>
+#include "../../../onyx_smem.h"
 
 static int debug_magic = 0;
 module_param(debug_magic, int, 0644);
@@ -44,8 +45,8 @@ static int __init ordump_sysfs_init(void)
         return -EFAULT;
     }
 
-    dump_lbaooo = (struct dump_lbaooo*)qcom_smem_get(0, SMEM_OPLUS_RDUMP, &smem_size);
-    if (!IS_ERR(dump_lbaooo) && (dump_lbaooo->debug_magic == ORDUMP_EN_MAGIC)) {
+    dump_lbaooo = onyx_smem_get_exact(0, SMEM_OPLUS_RDUMP, len);
+    if (dump_lbaooo && (dump_lbaooo->debug_magic == ORDUMP_EN_MAGIC)) {
         debug_magic = ENABLE;
         pr_info("%s: enable debug_magic .\n", __func__);
     }
@@ -62,8 +63,8 @@ static int param_set_ordump_lbaooo(const char *val,
     size_t smem_size;
 
     retval = param_set_ulong(val, kp);
-    dump_lbaooo = (struct dump_lbaooo*)qcom_smem_get(0, SMEM_OPLUS_RDUMP, &smem_size);
-    if (IS_ERR(dump_lbaooo)) {
+    dump_lbaooo = onyx_smem_get_exact(0, SMEM_OPLUS_RDUMP, sizeof(struct dump_lbaooo));
+    if (!dump_lbaooo) {
         pr_err("%s smem_get fail\n", __func__);
         return -EFAULT;
     }

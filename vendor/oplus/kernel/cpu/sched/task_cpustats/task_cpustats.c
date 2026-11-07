@@ -22,6 +22,7 @@
 #include <linux/init.h>
 #include <linux/version.h>
 #include "../kernel/oplus_cpu/sched/sched_assist/cputime.h"
+#include "../../../onyx_proc_shared.h"
 
 /* FIXME get max_pid on the runtime.*/
 #define MAX_PID (32768)
@@ -277,7 +278,7 @@ static int proc_task_cpustats_init(void)
 	task_info = NULL;
 	task_cpustats = NULL;
 
-	task_info = proc_mkdir(TASK_CPUSTATS_FILE, NULL);
+	task_info = onyx_proc_mkdir_shared(TASK_CPUSTATS_FILE);
 
 	if (!task_info)
 		task_cpustats = proc_mkdir(TASK_CPUSTATS_PROC_EXIST_NODE, NULL);

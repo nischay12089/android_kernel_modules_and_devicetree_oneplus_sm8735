@@ -194,6 +194,8 @@ static struct genl_family oplus_score_genl_family =
 	.maxattr = OPLUS_SCORE_MSG_MAX,
 	.ops = oplus_score_genl_ops,
 	.n_ops = ARRAY_SIZE(oplus_score_genl_ops),
+	/* onyx: 6.1+ genetlink rejects every attribute of policy-less ops at or above resv_start_op */
+	.resv_start_op = __OPLUS_SCORE_CMD_MAX,
 };
 
 static int oplus_score_send_netlink_msg(int msg_type, char *payload, int payload_len);
@@ -1233,6 +1235,9 @@ static int oplus_score_netlink_rcv_msg(struct sk_buff *skb, struct genl_info *in
 
 	nlhdr = nlmsg_hdr(skb);
 	genlhdr = nlmsg_data(nlhdr);
+	/* onyx: the handler reads this first attribute; reject requests that carry none */
+	if (genlmsg_len(genlhdr) < NLA_HDRLEN)
+		return -EINVAL;
 	nla = genlmsg_data(genlhdr);
 
 	oplus_score_user_pid = nlhdr->nlmsg_pid;

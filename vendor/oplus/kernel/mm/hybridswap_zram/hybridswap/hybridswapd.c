@@ -121,7 +121,18 @@ static void wake_all_swapd(void);
 #ifdef CONFIG_OPLUS_JANK
 extern u32 get_cpu_load(u32 win_cnt, struct cpumask *mask);
 #endif
-extern bool is_fg(int uid);
+/*
+ * onyx: is_fg() lives in oplus_bsp_schedinfo (vendor_dlkm, second stage) while this driver loads at
+ * first stage as "zram", so resolve it lazily. Until schedinfo is up nothing counts as foreground;
+ * hybridswapd only runs after ColorOS enables it at boot_completed.
+ */
+static bool (*is_fg_fn)(int uid);
+static bool hybs_is_fg(int uid)
+{
+	if (unlikely(!READ_ONCE(is_fg_fn)))
+		WRITE_ONCE(is_fg_fn, (bool (*)(int))__symbol_get("is_fg"));
+	return is_fg_fn ? is_fg_fn(uid) : false;
+}
 
 inline u64 get_zram_wm_ratio_value(void)
 {
@@ -1513,7 +1524,7 @@ static unsigned long swapd_shrink_anon(pg_data_t *pgdat,
 			hybs = MEMCGRP_ITEM_DATA(memcg);
 			if (!hybs->can_reclaimed)
 				continue;
-			if (is_fg((int)atomic64_read(&hybs->app_uid)))
+			if (hybs_is_fg((int)atomic64_read(&hybs->app_uid)))
 				continue;
 
 			memcg_to_reclaim = reclaim_size_per_cycle * hybs->can_reclaimed / total_can_reclaimed;

@@ -7,6 +7,7 @@
 #ifndef _SLUB_TRACK_
 #define _SLUB_TRACK_
 #include <linux/sort.h>
+#include "../../onyx_proc_shared.h"
 #include <linux/jhash.h>
 #include <linux/version.h>
 #include <linux/swap.h>
@@ -166,7 +167,7 @@ static int __init memleak_detect_init(void)
 {
 	int ret;
 
-	oplus_mem_dir = proc_mkdir("oplus_mem", NULL);
+	oplus_mem_dir = onyx_proc_mkdir_shared("oplus_mem");
 	if (!oplus_mem_dir)
 		memleak_detect_dir = proc_mkdir("oplus_mem/memleak_detect", NULL);
 	else

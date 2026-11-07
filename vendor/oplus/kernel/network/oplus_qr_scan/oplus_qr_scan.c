@@ -108,6 +108,8 @@ static struct genl_family qr_monitor_genl_family = {
 	.maxattr = QR_SCAN_MSG_MAX,
 	.ops = qr_monitor_genl_ops,
 	.n_ops = ARRAY_SIZE(qr_monitor_genl_ops),
+	/* onyx: 6.1+ genetlink rejects every attribute of policy-less ops at or above resv_start_op */
+	.resv_start_op = __NETLINK_OPLUS_QR_CMD_MAX,
 };
 
 static inline int qr_genl_msg_prepare_usr_msg(u8 cmd, size_t size, pid_t pid, struct sk_buff **skbp)
@@ -585,6 +587,9 @@ static int qr_monitor_netlink_nlmsg_handle(struct sk_buff *skb, struct genl_info
 
 	nlhdr = nlmsg_hdr(skb);
 	genlhdr = nlmsg_data(nlhdr);
+	/* onyx: the handler reads this first attribute; reject requests that carry none */
+	if (genlmsg_len(genlhdr) < NLA_HDRLEN)
+		return -EINVAL;
 	nla = genlmsg_data(genlhdr);
 
 	switch (nla->nla_type) {

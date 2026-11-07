@@ -12,8 +12,11 @@ extern int netlink_send_to_user(int msg_type, char *data, int data_len);
 
 /* Kprobe */
 #define QRTR_PRINT_WAKEUP_REASON_NAME "qrtr_print_wakeup_reason"
-#define QRTR_PRINT_WAKEUP_REASON_OFFSET_V1 0x134
-#define QRTR_PRINT_WAKEUP_REASON_OFFSET_V2 0x184
+/*
+ * onyx: offset of "str w24, [sp]" right before _printk in Xiaomi's qrtr.ko, where x24 = service_id
+ * and x6 = low word of preview. OnePlus's 0x134/0x184 land in the epilogue and in the next function.
+ */
+#define QRTR_PRINT_WAKEUP_REASON_OFFSET_V1 0x110
 #define QRTR_PRINT_SERVICE_ID_REGS_INDEX 24
 #define QRTR_PRINT_MSG_ID_REGS_INDEX 6
 #define QRTR_MSG_ID_MASK 0xFF000000
@@ -26,12 +29,6 @@ static struct kprobe kp_qrtr_print_wakeup_reason_v1 = {
 	.symbol_name = QRTR_PRINT_WAKEUP_REASON_NAME,
 	.pre_handler = handler_qrtr_print_wakeup_reason,
 	.offset = QRTR_PRINT_WAKEUP_REASON_OFFSET_V1,
-};
-
-static struct kprobe kp_qrtr_print_wakeup_reason_v2 = {
-	.symbol_name = QRTR_PRINT_WAKEUP_REASON_NAME,
-	.pre_handler = handler_qrtr_print_wakeup_reason,
-	.offset = QRTR_PRINT_WAKEUP_REASON_OFFSET_V2,
 };
 
 /* Statistics */
@@ -77,13 +74,14 @@ static int handler_qrtr_print_wakeup_reason(struct kprobe *kp, struct pt_regs *r
 				break;
 			}
 		}
+		/* onyx: per-wakeup prints are debug-only; they ran on every modem wakeup */
 		if (array_overflow) {
-			printk("[qrtr_hook] service_id=0x%llx msg_id=0x%llx, array overflow!", service_id, msg_id);
+			pr_debug("[qrtr_hook] service_id=0x%llx msg_id=0x%llx, array overflow!", service_id, msg_id);
 		} else {
-			printk("[qrtr_hook] service_id=0x%llx msg_id=0x%llx", service_id, msg_id);
+			pr_debug("[qrtr_hook] service_id=0x%llx msg_id=0x%llx", service_id, msg_id);
 		}
 	} else {
-		printk("[qrtr_hook] failed to hook qrtr wakeup, invalid format [0x%llx 0x%llx]",
+		pr_debug("[qrtr_hook] failed to hook qrtr wakeup, invalid format [0x%llx 0x%llx]",
 		       regs->regs[QRTR_PRINT_SERVICE_ID_REGS_INDEX], regs->regs[QRTR_PRINT_MSG_ID_REGS_INDEX]);
 	}
 
@@ -159,11 +157,6 @@ int qrtr_hook_init(void)
 		printk("[qrtr_hook] register qrtr kprobe v1 failed with %d", ret);
 	}
 
-	ret = register_kprobe(&kp_qrtr_print_wakeup_reason_v2);
-	if (ret < 0) {
-		printk("[qrtr_hook] register qrtr kprobe v2 failed with %d", ret);
-	}
-
 	memset(qrtr_wakeup_array, 0x0, sizeof(struct qrtr_wakeup_st) * QRTR_WAKEUP_ARRAY_LEN);
 
 	printk("[qrtr_hook] module init successfully!");
@@ -176,5 +169,4 @@ int qrtr_hook_init(void)
 void qrtr_hook_fini(void)
 {
 	unregister_kprobe(&kp_qrtr_print_wakeup_reason_v1);
-	unregister_kprobe(&kp_qrtr_print_wakeup_reason_v2);
 }

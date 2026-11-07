@@ -61,6 +61,9 @@ static int bl_start_check_systemid = -1;
 extern bool error_flag;
 int black_screen_timer_restart(void)
 {
+	if (!THEIA_HAS_PANEL_EVENTS)
+		return -ENODEV;
+
 	BLACK_DEBUG_PRINTK("%s enter: blank = %d, status = %d\n", __func__, g_black_data.blank, g_black_data.status);
 
 	if (g_black_data.status != BLACK_STATUS_CHECK_ENABLE && g_black_data.status != BLACK_STATUS_CHECK_DEBUG) {

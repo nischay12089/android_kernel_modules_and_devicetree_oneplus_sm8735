@@ -373,7 +373,8 @@ extern android_rvh_schedule_handler_t fbg_android_rvh_schedule_callback;
 extern struct kmem_cache *oplus_task_struct_cachep;
 
 #define ots_to_ts(ots)	(ots->task)
-#define OTS_IDX			0
+/* onyx: Xiaomi mi_schedule.ko keeps a list_head in task oem_data1[0..1]; GTS_IDX owns [3]. */
+#define OTS_IDX			2
 #define ORQ_IDX			0
 
 static inline bool test_task_is_fair(struct task_struct *task)

@@ -259,12 +259,13 @@ static int __init oplus_sched_assist_init(void)
 #endif
 
 	ret = register_scheduler_vendor_hooks();
-	if (ret != 0)
-		return ret;
-
-	ret = oplus_sched_assist_proc_init();
-	if (ret != 0)
-		return ret;
+	if (ret == 0)
+		ret = oplus_sched_assist_proc_init();
+	if (ret != 0) {
+		/* published hooks/OTS pointers can't be torn down: stay resident, left disabled */
+		ux_err("sched assist init failed (%d), left disabled\n", ret);
+		return 0;
+	}
 	detect_symbol();
 	if (_profile_event_register)
 		/* register a notifier to monitor task exit */

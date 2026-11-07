@@ -4,6 +4,7 @@
  */
 
 #include <linux/sched.h>
+#include "../../../onyx_proc_shared.h"
 #include <linux/fs.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
@@ -347,7 +348,7 @@ static int __init proc_task_load_init(void)
 
 	task_load_info = NULL;
 
-	task_load_info = proc_mkdir(RUNTIME_DIR, NULL);
+	task_load_info = onyx_proc_mkdir_shared(RUNTIME_DIR);
 	if (!task_load_info)
 		task_runtime = proc_mkdir(TASK_LOAD_EXIST_NODE, NULL);
 	else

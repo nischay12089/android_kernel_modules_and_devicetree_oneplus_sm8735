@@ -46,6 +46,7 @@
 #if IS_ENABLED(CONFIG_OPLUS_FEATURE_MM_OSVELTE)
 #include "../mm_osvelte/mm-config.h"
 #endif /* CONFIG_OPLUS_FEATURE_MM_OSVELTE */
+#include "../../onyx_proc_shared.h"
 
 /*
   FIXME:
@@ -287,19 +288,23 @@ static int __init mglru_opt_init(void)
 
 	GET_SYMBOL(kallsyms_lookup_name);
 
-	/*Create debug entry*/
-	struct proc_dir_entry *root_dir_entry = proc_mkdir("oplus_mem", NULL);
-	proc_create_single((root_dir_entry ?
-				"mglru_opt_debug" : "oplus_mem/mglru_opt_debug"),
-				0400, root_dir_entry, mglru_proc_stat_show);
-
 	ret = get_all_symbol();
 	if(ret != 0)
 		return ret;
 
 	ret = register_mglru_opt_vendor_hooks();
-	if (ret != 0)
+	if (ret != 0) {
+		/* onyx: a partial registration would leave hooks in freed module text */
+		unregister_mglru_opt_vendor_hooks();
+		tracepoint_synchronize_unregister();
 		return ret;
+	}
+
+	/* onyx: created last so no failure path leaves a /proc entry into freed text */
+	struct proc_dir_entry *root_dir_entry = onyx_proc_mkdir_shared("oplus_mem");
+	proc_create_single((root_dir_entry ?
+				"mglru_opt_debug" : "oplus_mem/mglru_opt_debug"),
+				0400, root_dir_entry, mglru_proc_stat_show);
 
 	atomic_set(&mglru_opt_enable, true);
 	pr_info("mglru_opt_init succeed!\n");
@@ -308,7 +313,10 @@ static int __init mglru_opt_init(void)
 
 static void __exit mglru_opt_exit(void)
 {
+	/* onyx: the shared oplus_mem dir stays, other modules own files in it */
+	remove_proc_entry("oplus_mem/mglru_opt_debug", NULL);
 	unregister_mglru_opt_vendor_hooks();
+	tracepoint_synchronize_unregister();
 	atomic_set(&mglru_opt_enable, false);
 	pr_info("mglru_opt_exit succeed!\n");
 }

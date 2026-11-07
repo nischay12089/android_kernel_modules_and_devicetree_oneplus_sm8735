@@ -14,6 +14,7 @@
 #include <linux/err.h>
 
 #include "oplus_pmic_info.h"
+#include "../../../onyx_smem.h"
 
 #define SMEM_PMIC_INFO	134
 
@@ -24,11 +25,10 @@ void *get_pmic_history_from_smem(void)
 	size_t smem_size = 0;
 	void *smem_ptr = NULL;
 
-	smem_ptr = qcom_smem_get(QCOM_SMEM_HOST_ANY,
-				SMEM_PMIC_INFO,
-				&smem_size);
+	smem_ptr = onyx_smem_get_exact(QCOM_SMEM_HOST_ANY, SMEM_PMIC_INFO,
+				       sizeof(struct PMICHistoryKernelStruct));
 
-	if (IS_ERR(smem_ptr) || !smem_size) {
+	if (!smem_ptr) {
 		return NULL;
 	}
 

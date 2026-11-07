@@ -267,7 +267,7 @@ static int __init horae_shell_init(void)
 	ret = platform_driver_register(&horae_shell_platdrv);
 	if (ret) {
 		pr_err("register horae shell driver failed\n");
-		remove_proc_entry("sehll-temp", NULL);
+		remove_proc_entry("shell-temp", NULL);
 		return -ENOENT;
 	}
 
@@ -276,7 +276,7 @@ static int __init horae_shell_init(void)
 
 static void __exit horae_shell_exit(void)
 {
-	remove_proc_entry("sehll-temp", NULL);
+	remove_proc_entry("shell-temp", NULL);
 	platform_driver_unregister(&horae_shell_platdrv);
 }
 

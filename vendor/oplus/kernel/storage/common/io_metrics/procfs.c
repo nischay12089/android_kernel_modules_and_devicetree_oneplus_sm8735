@@ -6,6 +6,7 @@
 #include <linux/dcache.h>
 
 #include "procfs.h"
+#include "../../../onyx_proc_shared.h"
 #include "block_metrics.h"
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0))
 #include "f2fs_metrics.h"
@@ -18,7 +19,8 @@
 #define IO_METRICS_CONTROL_DIR_NODE "control"
 #define DUMP_PATH_LEN 1024
 static char abnormal_io_dump_path[DUMP_PATH_LEN];
-bool proc_show_enabled = true;
+/* onyx: off by default, the perf HAL reads ~74 nodes per poll and each read printk()ed */
+bool proc_show_enabled = false;
 module_param(proc_show_enabled, bool, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(proc_show_enabled, " Debug proc");
 
@@ -424,13 +426,10 @@ int io_metrics_procfs_init(void)
 
     struct proc_dir_entry *pnode;
     /* /proc/oplus_storage */
-    storage_procfs = proc_mkdir(STORAGE_DIR_NODE, NULL);
-    if (!storage_procfs) {
-        io_metrics_print("Can't create procfs node\n");
-        goto error_out;
-    }
+    /* onyx: oplus_storage is shared with file_monitor; NULL here just means it already exists */
+    storage_procfs = onyx_proc_mkdir_shared(STORAGE_DIR_NODE);
     /* /proc/oplus_storage/io_metrics */
-    io_metrics_procfs = proc_mkdir(IO_METRICS_DIR_NODE, storage_procfs);
+    io_metrics_procfs = proc_mkdir(STORAGE_DIR_NODE "/" IO_METRICS_DIR_NODE, NULL);
     if (!io_metrics_procfs) {
         io_metrics_print("Can't create procfs node\n");
         goto error_out;
@@ -506,10 +505,6 @@ error_out:
 }
 void io_metrics_procfs_exit(void)
 {
-    if (storage_procfs) {
-        if (io_metrics_procfs) {
-            remove_proc_entry(IO_METRICS_DIR_NODE, storage_procfs);
-        }
-        remove_proc_entry(STORAGE_DIR_NODE, NULL);
-    }
+    /* onyx: remove_proc_entry() on the non-empty dir WARNed and leaked it; keep the shared parent */
+    remove_proc_subtree(STORAGE_DIR_NODE "/" IO_METRICS_DIR_NODE, NULL);
 }

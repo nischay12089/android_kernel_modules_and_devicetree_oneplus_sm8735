@@ -218,7 +218,7 @@ static int del_notify_client(u32 pid)
 
 	spin_lock(&s_notify_list_lock);
 
-	hlist_for_each_entry_safe(pos, next, &s_inform_list, node) {
+	hlist_for_each_entry_safe(pos, next, &s_notify_list, node) {
 		if (pos->notify_pid == pid) {
 			hlist_del(&pos->node);
 			kfree(pos);
@@ -291,6 +291,8 @@ static int comm_netlink_send_rsp_data(u32 pid, int requestId, int eventId, int e
 		logt("malloc size %lu failed", len);
 		return -1;
 	}
+	/* onyx: buf was sent unpacked, i.e. uninitialised heap */
+	len = netlink__proto__response_message__pack(&errRsp, buf);
 	send_one_msg(pid, COMM_NETLINK_MSG_RESPONSE, buf, len);
 	kfree(buf);
 	return 0;
@@ -314,6 +316,7 @@ static int comm_netlink_requset_msg(u32 pid, char *data, int len)
 	}
 	if (requestMsg->header == NULL) {
 		logt("header is null!");
+		netlink__proto__request_message__free_unpacked(requestMsg, NULL);
 		return -1;
 	}
 	spin_lock(&s_request_list_lock);
@@ -357,6 +360,7 @@ static int comm_netlink_inform_msg(u32 pid, char *data, int len)
 	}
 	if (infoMsg->header == NULL) {
 		logt("header is null!");
+		netlink__proto__inform_message__free_unpacked(infoMsg, NULL);
 		return -1;
 	}
 
@@ -380,6 +384,9 @@ static int comm_netlink_recv_msg(struct sk_buff *skb, struct genl_info *info)
 
 	pid = info->snd_portid;
 	genlhdr = info->genlhdr;
+	/* onyx: the switch below reads this first attribute; reject requests that carry none */
+	if (genlmsg_len(genlhdr) < NLA_HDRLEN)
+		return -EINVAL;
 	nla = genlmsg_data(genlhdr);
 
 	switch (nla->nla_type) {
@@ -419,9 +426,12 @@ static struct genl_family comm_genl_family = {
 	.hdrsize = 0,
 	.name = NETLINK_COMM_FAMILY_NAME,
 	.version = NETLINK_COMM_FAMILY_VERSION,
-	.maxattr = COMM_NETLINK_CMD_MAX,
+	/* onyx: attributes are COMM_NETLINK_MSG_* (up to NOTIFY), not commands */
+	.maxattr = COMM_NETLINK_MSG_MAX - 1,
 	.ops = comm_genl_ops,
 	.n_ops = ARRAY_SIZE(comm_genl_ops),
+	/* onyx: 6.1+ genetlink rejects every attribute of policy-less ops at or above resv_start_op */
+	.resv_start_op = COMM_NETLINK_CMD_MAX,
 };
 
 

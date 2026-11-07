@@ -26,7 +26,9 @@
 #define MAX_CMD_LENGTH 32
 #define DEFAULT_PHX_WD_PET_TIME (60 * 4)
 
-static int hang_oplus_main_on = 1; /* default on */
+/* onyx: off unless the bootloader passes phx_rus_conf.main_on=1 (only OnePlus's does): its
+ * hang watchdog needs OnePlus init and framework to report every boot stage */
+static int hang_oplus_main_on = 0;
 static int hang_oplus_recovery_method = RESTART_AND_RECOVERY;
 static int phx_hlos_wd_pet_time = DEFAULT_PHX_WD_PET_TIME;
 

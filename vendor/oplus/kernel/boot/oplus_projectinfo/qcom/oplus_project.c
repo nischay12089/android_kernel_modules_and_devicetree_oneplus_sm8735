@@ -122,11 +122,24 @@ static void init_project_version(void)
     if (g_project) {
         return;
     } else {
+        static bool no_ocdt;
+
+        if (no_ocdt)
+            return;
         smem_addr = qcom_smem_get(QCOM_SMEM_HOST_ANY,
         SMEM_PROJECT,
         &smem_size);
         if (IS_ERR(smem_addr)) {
             pr_err("unable to acquire smem SMEM_PROJECT entry\n");
+            return;
+        }
+        /* onyx: SMEM 135 is a generic OEM slot (0 bytes on this firmware); reading an OCDT out of
+         * it ran past the item and reset the phone */
+        if (smem_size < offsetof(ProjectInfoOCDT, nDataMidPlat) ||
+            (((ProjectInfoOCDT *)smem_addr)->Version != OCDT_VERSION_1_0 &&
+             ((ProjectInfoOCDT *)smem_addr)->Version != OCDT_VERSION_2_0)) {
+            pr_err("SMEM_PROJECT (size %zu) is not a OnePlus OCDT, ignoring it\n", smem_size);
+            no_ocdt = true;
             return;
         }
 
@@ -369,8 +382,8 @@ EXPORT_SYMBOL(get_midplat_version);
 int get_midplat_feature_info(OPLUS_MID_PLAT_FEATURE_T feature)
 {
     init_project_version();
-    if (!old_midplat_version && (g_project->nDataMidPlat.nVersion != MIDPLAT_INFO_UNSUPPORTED)) {
-        return g_project ? g_project->nDataMidPlat.infoMidPlat[feature] : -EINVAL;
+    if (g_project && !old_midplat_version && (g_project->nDataMidPlat.nVersion != MIDPLAT_INFO_UNSUPPORTED)) {
+        return g_project->nDataMidPlat.infoMidPlat[feature];
     }
     return -1;
 }

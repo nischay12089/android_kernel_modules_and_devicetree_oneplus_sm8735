@@ -108,6 +108,8 @@ static struct genl_family oplus_game_first_genl_family =
 	.maxattr = OPLUS_GAME_FIRST_MSG_MAX,
 	.ops = oplus_game_first_genl_ops,
 	.n_ops = ARRAY_SIZE(oplus_game_first_genl_ops),
+	/* onyx: 6.1+ genetlink rejects every attribute of policy-less ops at or above resv_start_op */
+	.resv_start_op = __OPLUS_GAME_FIRST_CMD_MAX,
 };
 
 static struct ctl_table oplus_game_first_sysctl_table[] = {
@@ -272,6 +274,9 @@ static int oplus_game_first_netlink_rcv_msg(struct sk_buff *skb, struct genl_inf
 
 	nlhdr = nlmsg_hdr(skb);
 	genlhdr = nlmsg_data(nlhdr);
+	/* onyx: the handler reads this first attribute; reject requests that carry none */
+	if (genlmsg_len(genlhdr) < NLA_HDRLEN)
+		return -EINVAL;
 	nla = genlmsg_data(genlhdr);
 
 	if (oplus_game_first_user_pid == 0) {
@@ -577,6 +582,8 @@ static int __init oplus_game_first_init(void)
 
 static void __exit oplus_game_first_exit(void)
 {
+	/* onyx: exit left these hooks pointing into freed module text (crash on next TX packet after rmmod) */
+	nf_unregister_net_hooks(&init_net, oplus_tx_class_netfilter_ops, ARRAY_SIZE(oplus_tx_class_netfilter_ops));
 	deinit_oplus_game_first_ctl();
 	unregister_hook_func();
 	oplus_game_first_netlink_exit();

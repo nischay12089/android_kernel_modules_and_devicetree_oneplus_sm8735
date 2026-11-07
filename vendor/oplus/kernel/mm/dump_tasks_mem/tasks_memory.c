@@ -15,6 +15,7 @@
 #include <linux/uaccess.h>
 #include <linux/mm.h>
 #include <linux/version.h>
+#include "../../onyx_proc_shared.h"
 
 #if IS_ENABLED(CONFIG_QCOM_KGSL)
 extern u64 kgsl_get_stats(pid_t pid);
@@ -214,7 +215,7 @@ static int __init memory_monitor_init(void)
 {
 	struct proc_dir_entry *root_dir_entry, *pentry;
 
-	root_dir_entry = proc_mkdir("oplus_mem", NULL);
+	root_dir_entry = onyx_proc_mkdir_shared("oplus_mem");
 	pentry = proc_create((root_dir_entry ?
 				"memory_monitor" : "oplus_mem/memory_monitor"),
 			S_IRUGO|S_IWUGO, root_dir_entry, &memory_monitor_fops);

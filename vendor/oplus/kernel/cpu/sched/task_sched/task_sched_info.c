@@ -40,6 +40,7 @@
 #if IS_ENABLED(CONFIG_OPLUS_FEATURE_FRAME_BOOST)
 #include <../kernel/oplus_cpu/sched/frame_boost/frame_group.h>
 #endif
+#include "../../../onyx_proc_shared.h"
 
 #define MAX_CPU_CLUSTER 4
 #define CTP_VERSION 3
@@ -1350,7 +1351,7 @@ int sched_info_init(void)
 
 	sched_action_init();
 
-	task_info = proc_mkdir(SCHED_INFO_DIR, NULL);
+	task_info = onyx_proc_mkdir_shared(SCHED_INFO_DIR);
 
 	if (!task_info)
 		sched_info = proc_mkdir(SCHED_INFO_PROC_EXIST_NODE, NULL);

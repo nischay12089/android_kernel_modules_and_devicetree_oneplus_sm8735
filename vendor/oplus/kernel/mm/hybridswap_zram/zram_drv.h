@@ -21,7 +21,18 @@
 #include <linux/gfp.h>
 
 #include "zcomp.h"
-#include "../thp_zsmalloc/zsmalloc.h"
+/* onyx: thp_zsmalloc is a renamed copy of stock zsmalloc; use the phone's zsmalloc.ko */
+#include <linux/zsmalloc.h>
+#define zs_create_pool_oplus		zs_create_pool
+#define zs_destroy_pool_oplus		zs_destroy_pool
+#define zs_malloc_oplus			zs_malloc
+#define zs_free_oplus			zs_free
+#define zs_map_object_oplus		zs_map_object
+#define zs_unmap_object_oplus		zs_unmap_object
+#define zs_get_total_pages_oplus	zs_get_total_pages
+#define zs_huge_class_size_oplus	zs_huge_class_size
+#define zs_compact_oplus		zs_compact
+#define zs_pool_stats_oplus		zs_pool_stats
 
 
 #define SECTORS_PER_PAGE_SHIFT	(PAGE_SHIFT - SECTOR_SHIFT)

@@ -41,6 +41,8 @@ static struct genl_family linkpower_netlink_genl_family = {
 	.maxattr = LINKPOWER_NETLINK_MSG_MAX,
 	.ops = linkpower_netlink_genl_ops,
 	.n_ops = ARRAY_SIZE(linkpower_netlink_genl_ops),
+	/* onyx: 6.1+ genetlink rejects every attribute of policy-less ops at or above resv_start_op */
+	.resv_start_op = __LINKPOWER_NETLINK_CMD_MAX,
 };
 
 /**
@@ -168,6 +170,9 @@ static int linkpower_netlink_nlmsg_handle(struct sk_buff *skb, struct genl_info 
 
 	nlhdr = nlmsg_hdr(skb);
 	genlhdr = nlmsg_data(nlhdr);
+	/* onyx: every sub-handler reads this first attribute; reject requests that carry none */
+	if (genlmsg_len(genlhdr) < NLA_HDRLEN)
+		return -EINVAL;
 	nla = genlmsg_data(genlhdr);
 	ret = set_android_pid(nlhdr);
 	nla_type = nla->nla_type;

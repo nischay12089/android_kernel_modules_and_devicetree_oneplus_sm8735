@@ -51,6 +51,8 @@ android_fstrace_get_pathname(char *buf, int buflen, struct inode *inode)
 }
 #endif
 #include <trace/events/f2fs.h>
+#include "../../../onyx_tracepoint.h" /* onyx: by-name probes for non-exported tracepoints */
+#include "../../../onyx_proc_shared.h"
 static struct proc_dir_entry *file_monitor_procfs = NULL;
 static struct proc_dir_entry *path_filter_file = NULL;
 static struct proc_dir_entry *remove_event_file = NULL;
@@ -224,16 +226,19 @@ static void cb_f2fs_unlink_enter(void *ignore, struct inode *dir,
 {
 	int written = 0;
 	char *file;
-	struct inode *inode = d_inode(dentry);
 	char *path, pathbuf[MAX_TRACE_PATHBUF_LEN];
 
 	if (g_unlink_switch == 0) {
 		return;
 	}
 
-	path = android_fstrace_get_pathname(pathbuf,
-										MAX_TRACE_PATHBUF_LEN,
-										inode);
+	/* onyx: probes run with preemption off; the inode->alias walk could sleep (dput/d_obtain_alias), the dentry is already here */
+	path = dentry_path_raw(dentry, pathbuf, sizeof(pathbuf));
+	if (IS_ERR(path)) {
+		strcpy(pathbuf, "ERROR");
+		path = pathbuf;
+	}
+	/* shortcut: remove_buf is appended without a lock; concurrent unlinks can garble text but stay in bounds */
 	if(strlen(pfliter_front)) {
 		if(strstr(path, pfliter_front) && strstr(path, pfliter_back)) {
 			rlen = strlen(remove_buf);
@@ -264,18 +269,22 @@ static void file_monitor_register_tracepoints(void)
 {
 	int ret;
 
-	ret = register_trace_f2fs_unlink_enter(cb_f2fs_unlink_enter, NULL);
+	ret = onyx_tp_register(f2fs_unlink_enter, cb_f2fs_unlink_enter, NULL);
+	if (ret)
+		pr_err(FILE_MONITOR_LOG_TAG "f2fs_unlink_enter probe failed: %d\n", ret);
 
 	return;
 }
 
 static void f2fs_unregister_tracepoint_probes(void)
 {
-	unregister_trace_f2fs_unlink_enter(cb_f2fs_unlink_enter, NULL);
+	onyx_tp_unregister(f2fs_unlink_enter, cb_f2fs_unlink_enter, NULL);
 }
 
 int __init file_monitor_init(void)
 {
+	/* onyx: io_metrics shares oplus_storage and may load later or in parallel */
+	onyx_proc_mkdir_shared("oplus_storage");
 	file_monitor_procfs = proc_mkdir("oplus_storage/file_monitor", NULL);
 	if (file_monitor_procfs == NULL) {
 		pr_err(FILE_MONITOR_LOG_TAG" Failed to create file_monitor procfs\n");
@@ -283,21 +292,13 @@ int __init file_monitor_init(void)
 	}
 
 	path_filter_file = proc_create("path_filter", 0644, file_monitor_procfs, &path_filter_fops);
-	if (path_filter_file == NULL) {
-		pr_err(FILE_MONITOR_LOG_TAG" Failed to create file oplus_storage/file_monitor/path_filter\n");
-		return -EFAULT;
-	}
-
 	remove_event_file = proc_create("remove_event", 0644, file_monitor_procfs, &remove_event_fops);
-	if (remove_event_file == NULL) {
-		pr_err(FILE_MONITOR_LOG_TAG" Failed to create file oplus_storage/file_monitor/remove_event\n");
-		return -EFAULT;
-	}
-
 	unlink_switch_file = proc_create("unlink_switch", 0644, file_monitor_procfs, &unlink_switch_fops);
-	if (unlink_switch_file == NULL) {
-		pr_err(FILE_MONITOR_LOG_TAG" Failed to create file oplus_storage/file_monitor/unlink_switch\n");
-		return -EFAULT;
+	if (!path_filter_file || !remove_event_file || !unlink_switch_file) {
+		pr_err(FILE_MONITOR_LOG_TAG" Failed to create oplus_storage/file_monitor entries\n");
+		/* onyx: don't leave entries pointing into a module that failed to load */
+		remove_proc_subtree("oplus_storage/file_monitor", NULL);
+		return -ENOMEM;
 	}
 
 	memset(pfliter_buf, 0, sizeof(pfliter_buf));
@@ -310,11 +311,10 @@ int __init file_monitor_init(void)
 
 void __exit file_monitor_exit(void)
 {
-	remove_proc_entry("path_filter", file_monitor_procfs);
-	remove_proc_entry("remove_event", file_monitor_procfs);
-	remove_proc_entry("unlink_switch", file_monitor_procfs);
-
 	f2fs_unregister_tracepoint_probes();
+	tracepoint_synchronize_unregister();
+	/* onyx: the dir too, but not the shared oplus_storage parent */
+	remove_proc_subtree("oplus_storage/file_monitor", NULL);
 }
 
 module_init(file_monitor_init);

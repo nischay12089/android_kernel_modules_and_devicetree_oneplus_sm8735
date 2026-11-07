@@ -1198,14 +1198,50 @@ void ufs_remove_oplus_dbg(void)
 EXPORT_SYMBOL_GPL(ufs_remove_oplus_dbg);
 
 
+/*
+ * onyx: OnePlus's modified ufs-qcom calls ufs_oplus_init_sdev() from slave_configure; Xiaomi's
+ * ufs_qcom never does. Return the UFS host's LUN 0 with a reference held (caller drops it with
+ * scsi_device_put), or NULL.
+ */
+static struct scsi_device *onyx_find_ufs_lun0(void)
+{
+	struct scsi_device *sdev = NULL;
+	struct Scsi_Host *shost;
+	unsigned int i;
+
+	/* match ufshcd's host template by name, not by host number or SoC address */
+	for (i = 0; i < 16 && !sdev; i++) {
+		shost = scsi_host_lookup(i);
+		if (!shost)
+			continue;
+		if (shost->hostt->proc_name && !strcmp(shost->hostt->proc_name, "ufshcd"))
+			sdev = scsi_device_lookup(shost, 0, 0, 0);
+		scsi_host_put(shost);	/* a held sdev pins its host */
+	}
+	return sdev;
+}
+
 static void __exit ufs_oplus_dbg_exit(void)
 {
-	return;
+	/* onyx: ufsplus_status points at our globals; drop all three so no entry outlives this module */
+	remove_proc_entry("devinfo/ufsplus_status", NULL);
+	remove_proc_entry("devinfo/ufs", NULL);
+	remove_proc_entry("devinfo/ufs_version", NULL);
 }
 
 static int __init ufs_oplus_dbg_init(void)
 {
+	struct scsi_device *sdev = onyx_find_ufs_lun0();
+
 	atomic_set(&ufs_init_done, 0);
+	if (!sdev) {
+		pr_err("onyx: no ufshcd LUN 0, /proc/devinfo/ufs not created\n");
+		return 0;
+	}
+	/* synchronous (OnePlus uses async_schedule) so the sdev reference covers the strncpy of its strings */
+	atomic_set(&ufs_init_done, 1);
+	create_devinfo_ufs(sdev, 0);
+	scsi_device_put(sdev);
 	return 0;
 }
 

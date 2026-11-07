@@ -3260,12 +3260,14 @@ int frame_group_init(void)
 			arch_scale_cpu_capacity(cpumask_first(&cluster->cpus)),
 			num_possible_cpus());
 
-	register_syscore_ops(&fbg_syscore_ops);
-
 	init_irq_work(&game_ed_irq_work, fbg_game_ed_irq_work);
-
-	atomic_set(&fbg_initialized, 1);
 
 out:
 	return ret;
+}
+
+void frame_group_activate(void)
+{
+	register_syscore_ops(&fbg_syscore_ops);
+	atomic_set(&fbg_initialized, 1);
 }

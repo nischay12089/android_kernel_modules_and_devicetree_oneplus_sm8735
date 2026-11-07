@@ -5,6 +5,7 @@
 #define pr_fmt(fmt) "proactive_compact: " fmt
 
 #include <linux/module.h>
+#include "../../onyx_proc_shared.h"
 #include <linux/types.h>
 #include <linux/swap.h>
 #include <linux/mm.h>
@@ -235,7 +236,7 @@ static const struct proc_ops proc_fragmentation_index_ops = {
 
 static int __init create_fragmentation_index_proc(void)
 {
-	struct proc_dir_entry *root_dir_entry = proc_mkdir("oplus_mem", NULL);
+	struct proc_dir_entry *root_dir_entry = onyx_proc_mkdir_shared("oplus_mem");
 
 	fragmentation_index_entry = proc_create((root_dir_entry ?
 				"fragmentation_index" : "oplus_mem/fragmentation_index"),

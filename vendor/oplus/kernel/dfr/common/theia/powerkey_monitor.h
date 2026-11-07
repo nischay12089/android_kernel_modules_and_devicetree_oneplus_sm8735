@@ -60,6 +60,10 @@
 #define THEIA_PANEL_BLANK_VALUE              MTK_DISP_BLANK_POWERDOWN
 #endif
 
+/* onyx: with no panel event source the screen state never changes, so every power-key check
+ * would time out and report (or panic on) a bright/black screen; keep the checks off */
+#define THEIA_HAS_PANEL_EVENTS (IS_ENABLED(CONFIG_DRM_PANEL_NOTIFY) || 	IS_ENABLED(CONFIG_QCOM_PANEL_EVENT_NOTIFIER) || IS_ENABLED(CONFIG_OPLUS_MTK_DRM_GKI_NOTIFY))
+
 #define SYSTEM_ID 20120
 #define PWKKEY_DCS_TAG                      "CriticalLog"
 #define PWKKEY_DCS_EVENTID                  "Theia"

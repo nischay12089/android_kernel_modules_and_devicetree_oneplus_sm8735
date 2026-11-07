@@ -21,6 +21,7 @@
 
 #include "../dump_device_info/device_info.h"
 #include "dump_reason.h"
+#include "../../../onyx_smem.h"
 #include <linux/slab.h>
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
@@ -104,7 +105,7 @@ void save_dump_reason_to_smem(char *info, char *function_name)
 		return;
 	}
 	flag++;
-	dp_info = qcom_smem_get(QCOM_SMEM_HOST_ANY, SMEM_DUMP_INFO, &size);
+	dp_info = onyx_smem_get_exact(QCOM_SMEM_HOST_ANY, SMEM_DUMP_INFO, sizeof(struct dump_info));
 
 	if (IS_ERR_OR_NULL(dp_info)) {
 		pr_debug("%s: get dp_info failure\n", __func__);
@@ -183,7 +184,8 @@ static void set_minidump_smem(int smem_value) {
 	struct minidump_status* smem_minidump_status = NULL;
 	size_t size = 0;
 
-	smem_minidump_status = qcom_smem_get(QCOM_SMEM_HOST_ANY, SMEM_MINIDUMP_INFO, &size);
+	smem_minidump_status = onyx_smem_get_exact(QCOM_SMEM_HOST_ANY, SMEM_MINIDUMP_INFO,
+						   sizeof(struct minidump_status));
 	if (IS_ERR_OR_NULL(smem_minidump_status)) {
 		pr_err("set_minidump_smem smem_minidump_status is error\n");
 		return;
@@ -258,7 +260,8 @@ static void minidump_smem_init(void) {
 		pr_err("qcom_smem_alloc failed in minidump_smem_init\n");
 		return;
 	}
-	smem_minidump_status = qcom_smem_get(QCOM_SMEM_HOST_ANY, SMEM_MINIDUMP_INFO, &size);
+	smem_minidump_status = onyx_smem_get_exact(QCOM_SMEM_HOST_ANY, SMEM_MINIDUMP_INFO,
+						   sizeof(struct minidump_status));
 	if (IS_ERR_OR_NULL(smem_minidump_status)) {
 		pr_err("qcom_smem_get failed in minidump_smem_init\n");
 		return;
@@ -277,7 +280,7 @@ static void save_version_ota_to_smem(void)
 	int length;
 	size_t size = 0;
 
-	dp_info = qcom_smem_get(QCOM_SMEM_HOST_ANY, SMEM_DUMP_INFO, &size);
+	dp_info = onyx_smem_get_exact(QCOM_SMEM_HOST_ANY, SMEM_DUMP_INFO, sizeof(struct dump_info));
 	if (IS_ERR_OR_NULL(dp_info)) {
 		pr_debug("%s: get dp_info failure\n", __func__);
 		return;

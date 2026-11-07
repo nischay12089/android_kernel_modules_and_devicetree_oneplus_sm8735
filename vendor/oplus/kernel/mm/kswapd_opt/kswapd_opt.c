@@ -16,6 +16,7 @@
 #endif
 
 #include <linux/types.h>
+#include "../../onyx_proc_shared.h"
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/seq_file.h>
@@ -121,7 +122,7 @@ static const struct proc_ops proc_alloc_adjust_ctrl_ops = {
 static void create_alloc_adjust_ctrl_proc(void)
 {
 	struct proc_dir_entry *root_dir_entry;
-	root_dir_entry =  proc_mkdir("oplus_mem", NULL);
+	root_dir_entry =  onyx_proc_mkdir_shared("oplus_mem");
 	if (!root_dir_entry)
 		alloc_adjust_ctrl_entry = proc_create("oplus_mem/alloc_adjust_ctrl",
 					0660, NULL, &proc_alloc_adjust_ctrl_ops);

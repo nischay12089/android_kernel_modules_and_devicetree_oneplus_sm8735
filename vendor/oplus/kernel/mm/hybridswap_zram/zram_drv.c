@@ -34,6 +34,7 @@
 #include <linux/cpuhotplug.h>
 #include <linux/part_stat.h>
 #include <linux/mm.h>
+#include <linux/tracepoint.h>
 
 #if IS_ENABLED(CONFIG_KCOMPRESSD)
 #include "kcompressd.h"
@@ -1340,6 +1341,15 @@ static int zram_read_page(struct zram *zram, struct page *page, u32 index,
 	int ret;
 
 	zram_slot_lock(zram, index);
+#ifdef CONFIG_HYBRIDSWAP_CORE
+	/* onyx: bring a hybridswap'd (ZRAM_WB) slot back into the zspool; returns with the slot locked */
+	ret = hybridswap_fault_out(zram, index);
+	if (unlikely(ret)) {
+		zram_slot_unlock(zram, index);
+		pr_err("hybridswap fault out failed! err=%d, page=%u\n", ret, index);
+		return ret;
+	}
+#endif
 	if (!zram_test_flag(zram, index, ZRAM_WB)) {
 		/* Slot should be locked through out the function call */
 		ret = zram_read_from_zspool(zram, page, index);
@@ -2568,6 +2578,11 @@ static int __init zram_init(void)
 	return 0;
 
 out_error:
+#if IS_ENABLED(CONFIG_KCOMPRESSD)
+	/* kcompressd_init() registered vh_swap_writepage; don't leave it pointing at freed text */
+	kcompressd_exit();
+	tracepoint_synchronize_unregister();
+#endif
 	destroy_devices();
 	return ret;
 }

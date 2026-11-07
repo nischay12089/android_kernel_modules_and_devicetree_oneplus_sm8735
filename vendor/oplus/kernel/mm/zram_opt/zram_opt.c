@@ -10,6 +10,7 @@
 #define pr_fmt(fmt) "zram_opt: " fmt
 
 #include <linux/module.h>
+#include "../../onyx_proc_shared.h"
 #include <linux/types.h>
 #include <trace/hooks/vmscan.h>
 #include <trace/hooks/mm.h>
@@ -402,7 +403,7 @@ static const struct proc_ops proc_swappiness_para_ops = {
 
 static int __init create_swappiness_para_proc(void)
 {
-	struct proc_dir_entry *root_dir_entry = proc_mkdir("oplus_mem", NULL);
+	struct proc_dir_entry *root_dir_entry = onyx_proc_mkdir_shared("oplus_mem");
 
 	para_entry = proc_create((root_dir_entry ?
 				"swappiness_para" : "oplus_mem/swappiness_para"),

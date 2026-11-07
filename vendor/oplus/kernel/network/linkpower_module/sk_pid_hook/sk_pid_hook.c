@@ -70,10 +70,11 @@ static int handler_tcp_connect(struct kprobe *kp, struct pt_regs *regs)
 			break;
 		}
 	}
+	/* onyx: debug-only; this ran on every TCP connect made by the system uid */
 	if (array_overflow) {
-		printk("[sk_pid_hook] sk_pid=%d, sport=%d, array overflow!", sk_pid, inet_sport);
+		pr_debug("[sk_pid_hook] sk_pid=%d, sport=%d, array overflow!", sk_pid, inet_sport);
 	} else {
-		printk("[sk_pid_hook] sk_pid=%d, sport=%d", sk_pid, inet_sport);
+		pr_debug("[sk_pid_hook] sk_pid=%d, sport=%d", sk_pid, inet_sport);
 	}
 
 	return 0;

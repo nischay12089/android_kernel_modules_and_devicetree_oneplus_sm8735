@@ -74,17 +74,11 @@ static int __init oplus_frame_boost_init(void)
 {
 	int ret = 0;
 
-	fbg_sysctl_init();
-
 #if IS_ENABLED(CONFIG_OPLUS_FEATURE_SCHED_CFBT)
 	ret = cfbt_frame_group_init();
 	if (ret != 0)
 		goto out;
 #endif /* CONFIG_OPLUS_FEATURE_SCHED_CFBT */
-
-	ret = frame_info_init();
-	if (ret != 0)
-		goto out;
 
 	ret = frame_group_init();
 	if (ret != 0)
@@ -101,11 +95,7 @@ static int __init oplus_frame_boost_init(void)
 		goto out;
 	ofb_debug("frame_timer init succeed!!\n");
 
-	/* please register your hooks at the end of init. */
-	register_frame_group_vendor_hooks();
-
-	fbg_migrate_task_callback = fbg_skip_migration;
-	fbg_android_rvh_schedule_callback = fbg_android_rvh_schedule_handler;
+	fbg_dbg_init();
 
 	kp.post_handler = rb_simple_write_handler_post;
 	ret = register_kprobe(&kp);
@@ -113,7 +103,15 @@ static int __init oplus_frame_boost_init(void)
 		pr_err("register_kprobe failed, returned %d\n", ret);
 		goto out;
 	}
-	fbg_dbg_init();
+
+	/* Publish callbacks only after fallible initialization succeeds. */
+	frame_group_activate();
+	register_frame_group_vendor_hooks();
+
+	fbg_migrate_task_callback = fbg_skip_migration;
+	fbg_android_rvh_schedule_callback = fbg_android_rvh_schedule_handler;
+
+	fbg_sysctl_init();
 
 	ofb_debug("oplus_bsp_frame_boost.ko init succeed!!\n");
 

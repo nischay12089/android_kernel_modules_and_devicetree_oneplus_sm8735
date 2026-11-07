@@ -633,7 +633,8 @@ int __init phoenix_reboot_speed_init(void)
         return -ENOMEM;
 	}
 
-	pe = proc_create("bootprof", 0664, NULL, &mt_bootprof_fops);
+	/* onyx: Xiaomi bootmonitor.ko owns /proc/bootprof */
+	pe = proc_create("oplus_bootprof", 0664, NULL, &mt_bootprof_fops);
 	if (!pe) {
         kfree(bootprof[0]);
         bootprof[0] = NULL;
@@ -669,7 +670,7 @@ void __exit phoenix_reboot_speed_exit(void)
 
         spin_unlock(&bootprof_lock);
 	}
-	remove_proc_entry("bootprof", NULL);
+	remove_proc_entry("oplus_bootprof", NULL);
 	pr_info("bootprof module exit.\n");
 }
 

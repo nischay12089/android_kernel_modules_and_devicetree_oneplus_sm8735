@@ -6,6 +6,7 @@
 #define pr_fmt(fmt) "uxmem_opt: " fmt
 
 #include <linux/module.h>
+#include "../../onyx_proc_shared.h"
 #include <trace/hooks/vmscan.h>
 #include <trace/hooks/mm.h>
 #include <linux/swap.h>
@@ -505,7 +506,7 @@ static int ux_page_pool_init(void)
 {
 	int ret = 0;
 	int i;
-	struct proc_dir_entry *root_dir_entry = proc_mkdir("oplus_mem", NULL);
+	struct proc_dir_entry *root_dir_entry = onyx_proc_mkdir_shared("oplus_mem");
 	struct zone *zone;
 	struct kprobe post_alloc_hook_kp = {
 		.symbol_name = "post_alloc_hook"

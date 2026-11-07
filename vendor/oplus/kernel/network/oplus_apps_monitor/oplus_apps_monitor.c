@@ -157,6 +157,8 @@ static struct genl_family apps_monitor_genl_family = {
 	.maxattr = APPS_MONITOR_MSG_MAX,
 	.ops = apps_monitor_genl_ops,
 	.n_ops = ARRAY_SIZE(apps_monitor_genl_ops),
+	/* onyx: 6.1+ genetlink rejects every attribute of policy-less ops at or above resv_start_op */
+	.resv_start_op = __APPS_MONITOR_CMD_MAX,
 };
 
 static inline int genl_msg_prepare_usr_msg(u8 cmd, size_t size, pid_t pid, struct sk_buff **skbp)
@@ -651,6 +653,9 @@ static int apps_monitor_netlink_nlmsg_handle(struct sk_buff *skb, struct genl_in
 
 	nlhdr = nlmsg_hdr(skb);
 	genlhdr = nlmsg_data(nlhdr);
+	/* onyx: the handler reads this first attribute; reject requests that carry none */
+	if (genlmsg_len(genlhdr) < NLA_HDRLEN)
+		return -EINVAL;
 	nla = genlmsg_data(genlhdr);
 
 	switch (nla->nla_type) {
@@ -751,7 +756,8 @@ static void apps_monitor_timer_init(void)
 
 static void apps_monitor_timer_del(void)
 {
-	del_timer(&apps_monitor_timer);
+	/* onyx: sync, the self-rearming handler may be running on another CPU */
+	del_timer_sync(&apps_monitor_timer);
 }
 
 static int get_static_index(struct sk_buff *skb)
@@ -984,7 +990,8 @@ static void __exit oplus_apps_monitor_fini(void)
 	clear_dev_rtt_record();
 	apps_monitor_netlink_exit();
 
-	if (is_need_period_timer()) {
+	/* onyx: the enable sysctl can be cleared after init; stop the timer if it was ever started */
+	if (apps_monitor_timer.function) {
 		apps_monitor_timer_del();
 	}
 

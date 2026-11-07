@@ -60,7 +60,7 @@ static int process_info(struct sk_buff *reply_skb, u32 types)
             continue;
 
         ret = handlers[i].handler(&buf);
-        pr_info("[standby_netlink]: type:%d, len:%d\n", handlers[i].type, ret);
+        pr_debug("[standby_netlink]: type:%d, len:%d\n", handlers[i].type, ret);
         if (!buf) {
             pr_err("[standby_netlink]: buf mem error.\n");
             continue;

@@ -23,7 +23,8 @@ extern struct zram *zram_arr[ZRAM_TYPE_MAX];
 
 #define zram_slot_unlock(zram, index) (bit_spin_unlock(ZRAM_LOCK, &zram->table[index].flags))
 
-#define init_done(zram)  (zram->disksize)
+/* onyx: a bool like upstream; the raw u64 truncated to 0 in initstate_show at multiples of 4 GiB */
+#define init_done(zram)  ((zram)->disksize != 0)
 
 #define dev_to_zram(dev) ((struct zram *)(dev_to_disk(dev)->private_data))
 
