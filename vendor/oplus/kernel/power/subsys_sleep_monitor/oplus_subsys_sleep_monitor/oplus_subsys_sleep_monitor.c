@@ -8,6 +8,7 @@
 #include <linux/seq_file.h>
 #include <linux/string.h>
 #include <linux/soc/qcom/smem.h>
+#include "../../../onyx_smem.h"
 #include <clocksource/arm_arch_timer.h>
 #include <linux/soc/qcom/smem.h>
 #include <linux/err.h>
@@ -31,6 +32,33 @@ static subsys_sleepmon *g_cdsp_sleepmon = NULL;
 
 static subsys_lprinfo *g_slpi_lprinfo = NULL;
 static subsys_sleepmon *g_slpi_sleepmon = NULL;
+
+/*
+ * onyx: the DSPs fill SMEM items 590/591 in their own firmware's layout, and every loop below
+ * trusts the counts in them. On this Xiaomi firmware the first read walked off the arrays and
+ * reset the phone. Use an item only when it is exactly the struct parsed here and its counts
+ * fit the arrays; otherwise the open fails with -ENOMEM as for a missing item.
+ */
+static void *sleepmon_smem_get(unsigned int host, unsigned int item, size_t *unused)
+{
+	subsys_lprinfo *l;
+	int i;
+
+	if (item != LPRINFO_SMEM_ID)
+		return onyx_smem_get_exact(host, item, sizeof(subsys_sleepmon));
+	l = onyx_smem_get_exact(host, item, sizeof(subsys_lprinfo));
+	if (!l)
+		return NULL;
+	if (l->num_lpr > NUM_COMPONENT_MODES || l->num_synth_modes > NUM_SYNTH_MODES)
+		goto bad;
+	for (i = 0; i < l->num_lpr; i++)
+		if (l->lprm[i].num_lprm > NUM_LPRM_MAX)
+			goto bad;
+	return l;
+bad:
+	pr_warn_once("onyx: sleepmon SMEM %u (host %u) counts out of range: unused\n", item, host);
+	return NULL;
+}
 
 
 static u64 ticks_to_us(u64 ticks){
@@ -414,12 +442,12 @@ static int adsp_sleepmon_open(struct inode *inode, struct file *file)
 
 	if (!adsp_smem_init_done) {
 
-		g_adsp_lprinfo = qcom_smem_get(
+		g_adsp_lprinfo = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_ADSP_PID,
 				LPRINFO_SMEM_ID,
 				NULL);
 
-		g_adsp_sleepmon = qcom_smem_get(
+		g_adsp_sleepmon = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_ADSP_PID,
 				SLEEPVOTERS_SMEM_ID,
 				NULL);
@@ -473,13 +501,13 @@ static int adsp_sleepmon_compact_open(struct inode *inode, struct file *file)
 
 	if (!adsp_smem_init_done) {
 
-		g_adsp_lprinfo = qcom_smem_get(
+		g_adsp_lprinfo = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_ADSP_PID,
 				LPRINFO_SMEM_ID,
 				NULL);
 
 
-		g_adsp_sleepmon = qcom_smem_get(
+		g_adsp_sleepmon = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_ADSP_PID,
 				SLEEPVOTERS_SMEM_ID,
 				NULL);
@@ -537,12 +565,12 @@ static int cdsp_sleepmon_open(struct inode *inode, struct file *file)
 
 	if (!cdsp_smem_init_done) {
 
-		g_cdsp_lprinfo = qcom_smem_get(
+		g_cdsp_lprinfo = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_CDSP_PID,
 				LPRINFO_SMEM_ID,
 				NULL);
 
-		g_cdsp_sleepmon = qcom_smem_get(
+		g_cdsp_sleepmon = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_CDSP_PID,
 				SLEEPVOTERS_SMEM_ID,
 				NULL);
@@ -597,13 +625,13 @@ static int cdsp_sleepmon_compact_open(struct inode *inode, struct file *file)
 
 	if (!cdsp_smem_init_done) {
 
-		g_cdsp_lprinfo = qcom_smem_get(
+		g_cdsp_lprinfo = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_CDSP_PID,
 				LPRINFO_SMEM_ID,
 				NULL);
 
 
-		g_cdsp_sleepmon = qcom_smem_get(
+		g_cdsp_sleepmon = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_CDSP_PID,
 				SLEEPVOTERS_SMEM_ID,
 				NULL);
@@ -661,12 +689,12 @@ static int slpi_sleepmon_open(struct inode *inode, struct file *file)
 
 	if (!slpi_smem_init_done) {
 
-		g_slpi_lprinfo = qcom_smem_get(
+		g_slpi_lprinfo = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_SSC_PID,
 				LPRINFO_SMEM_ID,
 				NULL);
 
-		g_slpi_sleepmon = qcom_smem_get(
+		g_slpi_sleepmon = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_SSC_PID,
 				SLEEPVOTERS_SMEM_ID,
 				NULL);
@@ -721,13 +749,13 @@ static int slpi_sleepmon_compact_open(struct inode *inode, struct file *file)
 
 	if (!slpi_smem_init_done) {
 
-		g_slpi_lprinfo = qcom_smem_get(
+		g_slpi_lprinfo = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_SSC_PID,
 				LPRINFO_SMEM_ID,
 				NULL);
 
 
-		g_slpi_sleepmon = qcom_smem_get(
+		g_slpi_sleepmon = sleepmon_smem_get(
 				SLEEPMONITOR_SMEM_SSC_PID,
 				SLEEPVOTERS_SMEM_ID,
 				NULL);
@@ -778,6 +806,9 @@ static int __init subsys_sleepmon_init(void)
 	proc_create("slpi", 0444, subsys_proc, &slpi_sleepmon_fops);
 	proc_create("slpi_compact", 0444, subsys_proc, &slpi_sleepmon_compact_fops);
 
+	/* onyx: newer ColorOS (QcomSubSystemLpmParser) reads /proc/oplus_subsys_sleepmon */
+	proc_symlink("oplus_subsys_sleepmon", NULL, "subsys_sleepmon");
+
 	return 0;
 }
 module_init(subsys_sleepmon_init);
@@ -793,6 +824,7 @@ static void __exit subsys_sleepmon_exit(void)
 	remove_proc_entry("slpi", subsys_proc);
 	remove_proc_entry("slpi_compact", subsys_proc);
 
+	remove_proc_entry("oplus_subsys_sleepmon", NULL);
 	remove_proc_entry("subsys_sleepmon", NULL);
 }
 module_exit(subsys_sleepmon_exit);
