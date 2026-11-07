@@ -19,6 +19,11 @@ static int debug_magic = 0;
 module_param(debug_magic, int, 0644);
 MODULE_PARM_DESC(debug_magic, "debug magic number");
 
+/* onyx: ColorOS's ordump_init.rc sets this; the dump path that reads it is not in this drop */
+static int shrinkdump_mode;
+module_param(shrinkdump_mode, int, 0644);
+MODULE_PARM_DESC(shrinkdump_mode, "accepted for ColorOS, unused on onyx");
+
 static unsigned long ordump_output_lbaooo = 0;
 
 #define SMEM_OPLUS_RDUMP    124
