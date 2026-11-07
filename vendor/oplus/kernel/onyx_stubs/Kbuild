@@ -9,3 +9,5 @@ obj-m += oplus_bsp_geas_system.o \
 	mtk_wdt.o \
 	oplus_slc.o \
 	oplus_wifi_swtp.o
+# placeholder /proc and /sys nodes ColorOS userspace expects (not a OnePlus module)
+obj-m += onyx_compat_nodes.o
