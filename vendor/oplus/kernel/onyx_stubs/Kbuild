@@ -1,0 +1,11 @@
+# onyx placeholders for OnePlus modules that cannot work on this phone (onyx_stub.h)
+obj-m += oplus_bsp_geas_system.o \
+	oplus_bsp_dfr_pmic_watchdog.o \
+	oplus_network_vnet.o \
+	oplus_lock_torture.o \
+	oplus_inject.o \
+	oplus_inject_aw8692x.o \
+	pseudo_sensor.o \
+	mtk_wdt.o \
+	oplus_slc.o \
+	oplus_wifi_swtp.o

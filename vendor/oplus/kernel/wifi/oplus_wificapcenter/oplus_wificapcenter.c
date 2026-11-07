@@ -382,8 +382,8 @@ static int oplus_wcc_sample_async_get(struct nlattr *nla)
         u32 *data = (u32 *)NLA_DATA(nla);
 
         async_msg_type = OPLUS_SAMPLE_ASYNC_GET;
-        oplus_timer.expires = jiffies + HZ;/* timer expires in ~1s*/
-        add_timer(&oplus_timer);
+        /* onyx: add_timer() BUG()s on a still-pending timer; a second request within 1 s re-arms */
+        mod_timer(&oplus_timer, jiffies + HZ);/* timer expires in ~1s*/
 
         debug("sample_async_set: %u%u%u%u\n", data[0], data[1], data[2], data[3]);
 
@@ -410,7 +410,7 @@ static void oplus_wcc_timer_init(void)
 
 static void oplus_wcc_timer_fini(void)
 {
-	del_timer(&oplus_timer);
+	del_timer_sync(&oplus_timer);	/* onyx: the callback must not run after unload */
 }
 
 /*2021/4/15 Xufenghua add for GKI2.0 modify ALM ID:1177828*/
