@@ -271,7 +271,8 @@ static void __android_vh_alter_rwsem_list_add_handler(struct rwsem_waiter *waite
 	bool ret = false;
 	bool handoff_set = false;
 
-	if (unlikely(!locking_opt_enable(LK_RWSEM_ENABLE)))
+	/* onyx: an earlier handler (Xiaomi metis) may have queued the waiter already */
+	if (unlikely(!locking_opt_enable(LK_RWSEM_ENABLE)) || *already_on_list)
 		return;
 
 	if (!waiter || !sem)

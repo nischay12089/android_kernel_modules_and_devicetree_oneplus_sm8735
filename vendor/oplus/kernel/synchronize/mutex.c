@@ -142,7 +142,9 @@ static void mutex_update_ux_cnt_when_remove(struct mutex *lock)
 static void android_vh_alter_mutex_list_add_handler(void *unused, struct mutex *lock,
 			struct mutex_waiter *waiter, struct list_head *list, bool *already_on_list)
 {
-	if (likely(locking_opt_enable(LK_MUTEX_ENABLE)))
+	/* onyx: an earlier handler (Qualcomm sched-walt) may have queued the waiter already; adding it
+	 * again, or clearing its flag so the kernel does, corrupts the wait list */
+	if (likely(locking_opt_enable(LK_MUTEX_ENABLE)) && !*already_on_list)
 		*already_on_list = mutex_list_add(current, &waiter->list, list, lock);
 
 #ifdef CONFIG_OPLUS_LOCKING_OSQ
