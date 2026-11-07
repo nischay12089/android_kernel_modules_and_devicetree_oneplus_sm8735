@@ -530,9 +530,14 @@ unsigned long memcg_anon_pages(struct mem_cgroup *memcg)
 		memcg_lru_pages(memcg, NR_ACTIVE_ANON);
 }
 
+/*
+ * onyx: count the whole subtree, as try_to_free_mem_cgroup_pages() reclaims it. The local count
+ * left the root memcg (apps live in child memcgs) under the floor, so every force_shrink_file
+ * write on /dev/memcg failed with -EBUSY. Leaf memcgs are unchanged: subtree == local there.
+ */
 static bool inactive_file_is_low(struct mem_cgroup *memcg)
 {
-	unsigned long nr_inactive_file = memcg_page_state_local(memcg, NR_INACTIVE_FILE);
+	unsigned long nr_inactive_file = memcg_page_state(memcg, NR_INACTIVE_FILE);
 	return nr_inactive_file < (SZ_512M + SZ_256M) / PAGE_SIZE;
 }
 
