@@ -52,7 +52,11 @@ static int sau_pwknum_seq_show(struct seq_file *seq, void*offset)
     return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
+#define PDE_DATA(inode) pde_data(inode)	/* onyx: renamed in 5.17 */
+#else
 extern void* PDE_DATA(const struct inode*inode);
+#endif
 static int sau_pwknum_open(struct inode *inode, struct file* file)
 {
     return single_open(file, sau_pwknum_seq_show, PDE_DATA(inode));
