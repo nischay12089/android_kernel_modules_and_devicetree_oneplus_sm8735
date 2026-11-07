@@ -83,8 +83,14 @@ static int handler_pre_cgroup_procs_write(struct kprobe *p, struct pt_regs *regs
 
 	buf = (char *)regs->regs[1];
 
+	/*
+	 * onyx: a pre_handler's non-zero return means "I moved regs->pc", so the probed instruction
+	 * is not single-stepped and the CPU re-enters the breakpoint forever. That spun every writer
+	 * of a non-number (KernelSU's su writes "pid" then "\n") in the kernel, unkillable. Leave
+	 * bad input to cgroup_procs_write(), which returns -EINVAL itself.
+	 */
 	if (kstrtoint(strstrip(buf), 0, &pid) || pid < 0)
-		return -EINVAL;
+		return 0;
 
 	rcu_read_lock();
 	task = find_task_by_vpid(pid);
