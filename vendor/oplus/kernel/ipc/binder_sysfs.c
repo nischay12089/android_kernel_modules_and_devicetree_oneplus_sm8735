@@ -189,6 +189,24 @@ static ssize_t proc_async_ux_flag_read(struct file *file, char __user *buf,
 	return simple_read_from_buffer(buf, count, ppos, buffer, len);
 }
 
+/*
+ * onyx: newer ColorOS (libSchedAssistExtImpl binderSetThreadUxFlagByIoctl) sets the flag with
+ * ioctl(fd, 0x407a6900, &(int[2]){tid, flag}) on this node, tid -1 = the caller; this drop only
+ * had the text write above, so the ioctl got ENOTTY. Same setter, same checks.
+ */
+#define BINDER_UX_FLAG_IOCTL	0x407a6900
+static long proc_async_ux_flag_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	int v[2];	/* tid, flag */
+
+	if (cmd != BINDER_UX_FLAG_IOCTL)
+		return -ENOTTY;
+	if (copy_from_user(v, (void __user *)arg, sizeof(v)))
+		return -EFAULT;
+	set_task_async_ux_enable(v[0], v[1]);
+	return 0;
+}
+
 static ssize_t proc_binder_all_tasks_async_ux_read(struct file *file, char __user *buf,
 		size_t count, loff_t *ppos)
 {
@@ -438,6 +456,7 @@ static const struct proc_ops proc_set_async_ux_after_pending_fops = {
 static const struct proc_ops proc_binder_async_ux_flag_fops = {
 	.proc_write		= proc_async_ux_flag_write,
 	.proc_read		= proc_async_ux_flag_read,
+	.proc_ioctl		= proc_async_ux_flag_ioctl,
 	.proc_lseek		= default_llseek,
 };
 
